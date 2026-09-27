@@ -67,6 +67,19 @@ public class SecurityConfig {
                                     .registerModule(new JavaTimeModule())
                                     .writeValue(response.getOutputStream(), errorResponse);
                         })
+                        .accessDeniedHandler((request, response, accessDeniedException) -> {
+                            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                            ErrorResponse errorResponse = new ErrorResponse(
+                                    LocalDateTime.now(),
+                                    HttpStatus.FORBIDDEN.value(),
+                                    "Forbidden",
+                                    "Access is denied"
+                            );
+                            new ObjectMapper()
+                                    .registerModule(new JavaTimeModule())
+                                    .writeValue(response.getOutputStream(), errorResponse);
+                        })
                 )
                 .authorizeHttpRequests(auth -> auth
                         // Pre-flight OPTIONS

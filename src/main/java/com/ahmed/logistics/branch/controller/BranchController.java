@@ -1,16 +1,14 @@
 package com.ahmed.logistics.branch.controller;
 
-import com.ahmed.logistics.branch.dto.CreateBranchRequest;
 import com.ahmed.logistics.branch.dto.BranchResponse;
+import com.ahmed.logistics.branch.dto.CreateBranchRequest;
 import com.ahmed.logistics.branch.dto.UpdateBranchRequest;
 import com.ahmed.logistics.branch.service.BranchService;
-import com.ahmed.logistics.exception.ForbiddenException;
-import com.ahmed.logistics.exception.UnauthorizedException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -20,59 +18,43 @@ public class BranchController {
 
     private final BranchService branchService;
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<BranchResponse> createBranch(
-            @Valid @RequestBody CreateBranchRequest request,
-            Authentication authentication
+            @Valid @RequestBody CreateBranchRequest request
     ) {
-        validateAdmin(authentication);
         BranchResponse response = branchService.createBranch(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'DISPATCHER', 'DRIVER', 'CUSTOMER')")
     @GetMapping("/{id}")
     public ResponseEntity<BranchResponse> getBranchById(@PathVariable Long id) {
         BranchResponse response = branchService.getBranchById(id);
         return ResponseEntity.ok(response);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'DISPATCHER', 'DRIVER', 'CUSTOMER')")
     @GetMapping("/code/{code}")
     public ResponseEntity<BranchResponse> getBranchByCode(@PathVariable String code) {
         BranchResponse response = branchService.getBranchByCode(code);
         return ResponseEntity.ok(response);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<BranchResponse> updateBranch(
             @PathVariable Long id,
-            @Valid @RequestBody UpdateBranchRequest request,
-            Authentication authentication
+            @Valid @RequestBody UpdateBranchRequest request
     ) {
-        validateAdmin(authentication);
         BranchResponse updated = branchService.updateBranch(id, request);
         return ResponseEntity.ok(updated);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteBranch(
-            @PathVariable Long id,
-            Authentication authentication
-    ) {
-        validateAdmin(authentication);
+    public ResponseEntity<Void> deleteBranch(@PathVariable Long id) {
         branchService.deleteBranch(id);
         return ResponseEntity.noContent().build();
-    }
-
-    private void validateAdmin(Authentication authentication) {
-        if (authentication == null || !authentication.isAuthenticated()) {
-            throw new UnauthorizedException("User is not authenticated");
-        }
-
-        boolean isAdmin = authentication.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
-
-        if (!isAdmin) {
-            throw new ForbiddenException("Only administrators have permission to perform this operation");
-        }
     }
 }
