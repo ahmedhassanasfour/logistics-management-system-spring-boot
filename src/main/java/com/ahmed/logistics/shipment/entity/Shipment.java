@@ -1,6 +1,9 @@
 package com.ahmed.logistics.shipment.entity;
 
 import com.ahmed.logistics.customer.entity.Customer;
+import com.ahmed.logistics.driver.entity.Driver;
+import com.ahmed.logistics.vehicle.entity.Vehicle;
+import com.ahmed.logistics.warehouse.entity.Warehouse;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.Check;
@@ -16,7 +19,10 @@ import java.time.LocalDateTime;
         },
         indexes = {
                 @Index(name = "idx_shipments_tracking_number", columnList = "tracking_number", unique = true),
-                @Index(name = "idx_shipments_customer_id", columnList = "customer_id")
+                @Index(name = "idx_shipments_customer_id", columnList = "customer_id"),
+                @Index(name = "idx_shipments_driver_id", columnList = "driver_id"),
+                @Index(name = "idx_shipments_vehicle_id", columnList = "vehicle_id"),
+                @Index(name = "idx_shipments_current_warehouse_id", columnList = "current_warehouse_id")
         }
 )
 @Check(constraints = "weight_kg > 0 AND base_price >= 0 AND shipping_fee >= 0 AND total_price >= 0")
@@ -37,6 +43,18 @@ public class Shipment {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id", nullable = false)
     private Customer customer;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "driver_id", foreignKey = @ForeignKey(name = "fk_shipments_driver"))
+    private Driver driver;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "vehicle_id", foreignKey = @ForeignKey(name = "fk_shipments_vehicle"))
+    private Vehicle vehicle;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "current_warehouse_id", foreignKey = @ForeignKey(name = "fk_shipments_current_warehouse"))
+    private Warehouse currentWarehouse;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)

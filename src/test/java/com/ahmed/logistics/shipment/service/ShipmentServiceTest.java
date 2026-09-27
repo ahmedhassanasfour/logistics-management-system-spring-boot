@@ -10,6 +10,8 @@ import com.ahmed.logistics.shipment.dto.UpdateShipmentRequest;
 import com.ahmed.logistics.shipment.entity.Shipment;
 import com.ahmed.logistics.shipment.entity.ShipmentStatus;
 import com.ahmed.logistics.shipment.entity.ShipmentType;
+import com.ahmed.logistics.shipment.pricing.ShipmentPricingResponse;
+import com.ahmed.logistics.shipment.pricing.ShipmentPricingService;
 import com.ahmed.logistics.shipment.repository.ShipmentRepository;
 import com.ahmed.logistics.shipment.tracking.service.ShipmentTrackingService;
 import com.ahmed.logistics.user.entity.Role;
@@ -48,7 +50,7 @@ class ShipmentServiceTest {
     private TrackingNumberGenerator trackingNumberGenerator;
 
     @Mock
-    private ShipmentPricingCalculator pricingCalculator;
+    private ShipmentPricingService pricingService;
 
     @Mock
     private ShipmentTrackingService shipmentTrackingService;
@@ -131,8 +133,8 @@ class ShipmentServiceTest {
         when(customerRepository.findById(10L)).thenReturn(Optional.of(customer));
         when(trackingNumberGenerator.generate()).thenReturn("SHP-GEN12345");
         when(shipmentRepository.existsByTrackingNumber("SHP-GEN12345")).thenReturn(false);
-        when(pricingCalculator.calculate(ShipmentType.STANDARD, 5.0))
-                .thenReturn(new ShipmentPricingCalculator.PriceBreakdown(
+        when(pricingService.calculatePrice(ShipmentType.STANDARD, 5.0))
+                .thenReturn(new ShipmentPricingResponse(
                         new BigDecimal("15.00"),
                         new BigDecimal("12.50"),
                         new BigDecimal("27.50")
@@ -244,9 +246,9 @@ class ShipmentServiceTest {
                 "Fragile Goods", 8.0, 30.0, 30.0, 30.0
         );
 
-        when(shipmentRepository.findById(100L)).thenReturn(Optional.of(sampleShipment));
-        when(pricingCalculator.calculate(ShipmentType.EXPRESS, 8.0))
-                .thenReturn(new ShipmentPricingCalculator.PriceBreakdown(
+        when(shipmentRepository.findByIdForUpdate(100L)).thenReturn(Optional.of(sampleShipment));
+        when(pricingService.calculatePrice(ShipmentType.EXPRESS, 8.0))
+                .thenReturn(new ShipmentPricingResponse(
                         new BigDecimal("25.00"),
                         new BigDecimal("40.00"),
                         new BigDecimal("65.00")
@@ -256,13 +258,38 @@ class ShipmentServiceTest {
         ShipmentResponse updated = shipmentService.updateShipment(100L, updateRequest);
 
         assertNotNull(updated);
+        verify(pricingService).calculatePrice(ShipmentType.EXPRESS, 8.0);
+        verify(shipmentRepository).save(sampleShipment);
+    }
+
+    @Test
+    @DisplayName("updateShipment with unchanged type and weight does not recalculate pricing")
+    void updateShipment_unchangedPricingFields_doesNotRecalculatePricing() {
+        UpdateShipmentRequest updateRequest = new UpdateShipmentRequest(
+                ShipmentType.STANDARD, // same as sampleShipment
+                "New Pickup", "Atlanta", "30301",
+                "New Delivery", "Orlando", "32801",
+                "New Recipient", "+1555222333",
+                "Updated Description",
+                5.0, // same as sampleShipment
+                30.0, 30.0, 30.0
+        );
+
+        when(shipmentRepository.findByIdForUpdate(100L)).thenReturn(Optional.of(sampleShipment));
+        when(shipmentRepository.save(any(Shipment.class))).thenReturn(sampleShipment);
+
+        ShipmentResponse updated = shipmentService.updateShipment(100L, updateRequest);
+
+        assertNotNull(updated);
+        verify(pricingService, never()).calculatePrice(any(ShipmentType.class), any(Double.class));
+        verify(pricingService, never()).calculatePrice(any(ShipmentType.class), any(BigDecimal.class));
         verify(shipmentRepository).save(sampleShipment);
     }
 
     @Test
     @DisplayName("deleteShipment deletes shipment by ID")
     void deleteShipment_success() {
-        when(shipmentRepository.findById(100L)).thenReturn(Optional.of(sampleShipment));
+        when(shipmentRepository.findByIdForUpdate(100L)).thenReturn(Optional.of(sampleShipment));
 
         shipmentService.deleteShipment(100L);
 

@@ -11,6 +11,8 @@ import com.ahmed.logistics.shipment.entity.Shipment;
 import com.ahmed.logistics.shipment.entity.ShipmentStatus;
 import com.ahmed.logistics.shipment.repository.ShipmentRepository;
 import com.ahmed.logistics.shipment.tracking.service.ShipmentTrackingService;
+import com.ahmed.logistics.shipment.pricing.ShipmentPricingResponse;
+import com.ahmed.logistics.shipment.pricing.ShipmentPricingService;
 import com.ahmed.logistics.user.entity.Role;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,7 +29,7 @@ public class ShipmentService {
     private final ShipmentRepository shipmentRepository;
     private final CustomerRepository customerRepository;
     private final TrackingNumberGenerator trackingNumberGenerator;
-    private final ShipmentPricingCalculator pricingCalculator;
+    private final ShipmentPricingService pricingService;
     private final ShipmentTrackingService shipmentTrackingService;
 
     @Transactional
@@ -42,7 +44,7 @@ public class ShipmentService {
         }
 
         String trackingNumber = generateUniqueTrackingNumber();
-        ShipmentPricingCalculator.PriceBreakdown prices = pricingCalculator.calculate(
+        ShipmentPricingResponse pricing = pricingService.calculatePrice(
                 request.shipmentType(),
                 request.weightKg()
         );
@@ -65,9 +67,9 @@ public class ShipmentService {
                 .lengthCm(request.lengthCm())
                 .widthCm(request.widthCm())
                 .heightCm(request.heightCm())
-                .basePrice(prices.basePrice())
-                .shippingFee(prices.shippingFee())
-                .totalPrice(prices.totalPrice())
+                .basePrice(pricing.basePrice())
+                .shippingFee(pricing.shippingFee())
+                .totalPrice(pricing.totalPrice())
                 .build();
 
         Shipment saved = shipmentRepository.save(shipment);
@@ -101,7 +103,13 @@ public class ShipmentService {
     @Transactional
     public ShipmentResponse updateShipment(Long id, UpdateShipmentRequest request) {
         log.info("Updating shipment with ID: {}", id);
-        Shipment shipment = findEntityById(id);
+        Shipment shipment = shipmentRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Shipment not found with ID: " + id));
+
+        boolean typeChanged = shipment.getShipmentType() != request.shipmentType();
+        boolean weightChanged = shipment.getWeightKg() == null
+                ? request.weightKg() != null
+                : request.weightKg() != null && Double.compare(shipment.getWeightKg(), request.weightKg()) != 0;
 
         shipment.setShipmentType(request.shipmentType());
         shipment.setPickupAddress(request.pickupAddress());
@@ -118,13 +126,16 @@ public class ShipmentService {
         shipment.setWidthCm(request.widthCm());
         shipment.setHeightCm(request.heightCm());
 
-        ShipmentPricingCalculator.PriceBreakdown prices = pricingCalculator.calculate(
-                request.shipmentType(),
-                request.weightKg()
-        );
-        shipment.setBasePrice(prices.basePrice());
-        shipment.setShippingFee(prices.shippingFee());
-        shipment.setTotalPrice(prices.totalPrice());
+        if (typeChanged || weightChanged) {
+            log.info("Pricing-affecting fields changed for shipment ID {}. Recalculating pricing.", id);
+            ShipmentPricingResponse pricing = pricingService.calculatePrice(
+                    request.shipmentType(),
+                    request.weightKg()
+            );
+            shipment.setBasePrice(pricing.basePrice());
+            shipment.setShippingFee(pricing.shippingFee());
+            shipment.setTotalPrice(pricing.totalPrice());
+        }
 
         Shipment updated = shipmentRepository.save(shipment);
         log.info("Shipment updated successfully with ID: {}", updated.getId());
@@ -134,7 +145,8 @@ public class ShipmentService {
     @Transactional
     public void deleteShipment(Long id) {
         log.info("Deleting shipment with ID: {}", id);
-        Shipment shipment = findEntityById(id);
+        Shipment shipment = shipmentRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Shipment not found with ID: " + id));
         shipmentRepository.delete(shipment);
         log.info("Shipment deleted successfully with ID: {}", id);
     }

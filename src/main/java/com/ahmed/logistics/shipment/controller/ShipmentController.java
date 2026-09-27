@@ -1,9 +1,11 @@
 package com.ahmed.logistics.shipment.controller;
 
+import com.ahmed.logistics.shipment.dto.AssignShipmentRequest;
 import com.ahmed.logistics.shipment.dto.CreateShipmentRequest;
 import com.ahmed.logistics.shipment.dto.ShipmentResponse;
 import com.ahmed.logistics.shipment.dto.UpdateShipmentRequest;
 import com.ahmed.logistics.shipment.dto.UpdateShipmentStatusRequest;
+import com.ahmed.logistics.shipment.service.ShipmentAssignmentService;
 import com.ahmed.logistics.shipment.service.ShipmentLifecycleService;
 import com.ahmed.logistics.shipment.service.ShipmentService;
 import jakarta.validation.Valid;
@@ -25,6 +27,7 @@ public class ShipmentController {
 
     private final ShipmentService shipmentService;
     private final ShipmentLifecycleService shipmentLifecycleService;
+    private final ShipmentAssignmentService shipmentAssignmentService;
 
     @PreAuthorize("@shipmentSecurity.canCreate(#request.customerId(), authentication)")
     @PostMapping
@@ -85,6 +88,20 @@ public class ShipmentController {
             @Valid @RequestBody UpdateShipmentStatusRequest request
     ) {
         ShipmentResponse response = shipmentLifecycleService.transitionStatus(id, request.status());
+        return ResponseEntity.ok(response);
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'DISPATCHER')")
+    @PatchMapping("/{shipmentId}/assignment")
+    public ResponseEntity<ShipmentResponse> assignDriverAndVehicle(
+            @PathVariable Long shipmentId,
+            @Valid @RequestBody AssignShipmentRequest request
+    ) {
+        ShipmentResponse response = shipmentAssignmentService.assignDriverAndVehicle(
+                shipmentId,
+                request.driverId(),
+                request.vehicleId()
+        );
         return ResponseEntity.ok(response);
     }
 

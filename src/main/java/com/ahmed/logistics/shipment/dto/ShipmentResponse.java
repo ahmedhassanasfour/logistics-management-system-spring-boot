@@ -4,6 +4,8 @@ import com.ahmed.logistics.shipment.entity.Shipment;
 import com.ahmed.logistics.shipment.entity.ShipmentStatus;
 import com.ahmed.logistics.shipment.entity.ShipmentType;
 
+import com.ahmed.logistics.warehouse.dto.WarehouseSummary;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -31,6 +33,9 @@ public record ShipmentResponse(
         BigDecimal basePrice,
         BigDecimal shippingFee,
         BigDecimal totalPrice,
+        DriverSummary driver,
+        VehicleSummary vehicle,
+        WarehouseSummary currentWarehouse,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
@@ -72,6 +77,9 @@ public record ShipmentResponse(
                 shipment.getBasePrice(),
                 shipment.getShippingFee(),
                 shipment.getTotalPrice(),
+                DriverSummary.fromEntity(shipment.getDriver()),
+                VehicleSummary.fromEntity(shipment.getVehicle()),
+                WarehouseSummary.fromEntity(shipment.getCurrentWarehouse()),
                 shipment.getCreatedAt(),
                 shipment.getUpdatedAt()
         );

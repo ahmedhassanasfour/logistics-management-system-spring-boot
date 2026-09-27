@@ -149,4 +149,16 @@ class ShipmentRepositoryTest {
             shipmentRepository.saveAndFlush(s2);
         });
     }
+
+    @Test
+    @DisplayName("findByIdForUpdate returns shipment with pessimistic write lock")
+    void findByIdForUpdate_returnsShipmentSuccessfully() {
+        Shipment shipment = buildSampleShipment("SHP-FOR-UPDATE-001");
+        Shipment saved = shipmentRepository.saveAndFlush(shipment);
+
+        Optional<Shipment> locked = shipmentRepository.findByIdForUpdate(saved.getId());
+
+        assertTrue(locked.isPresent());
+        assertEquals("SHP-FOR-UPDATE-001", locked.get().getTrackingNumber());
+    }
 }

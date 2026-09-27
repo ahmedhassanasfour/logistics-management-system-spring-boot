@@ -41,16 +41,29 @@ public class ShipmentLifecycleService {
             throw new BadRequestException("Target shipment status must not be null");
         }
 
-        Shipment shipment = shipmentRepository.findById(shipmentId)
+        Shipment shipment = shipmentRepository.findByIdForUpdate(shipmentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Shipment not found with ID: " + shipmentId));
 
+        Shipment updated = applyStatusTransition(shipment, targetStatus, null, null);
+        return ShipmentResponse.fromEntity(updated);
+    }
+
+    @Transactional
+    public Shipment applyStatusTransition(Shipment shipment, ShipmentStatus targetStatus, String trackingDescription, String location) {
+        if (shipment == null) {
+            throw new IllegalArgumentException("Shipment must not be null");
+        }
+        if (targetStatus == null) {
+            throw new BadRequestException("Target shipment status must not be null");
+        }
+
         ShipmentStatus currentStatus = shipment.getStatus();
-        log.info("Attempting to transition shipment ID: {} from {} to {}", shipmentId, currentStatus, targetStatus);
+        log.info("Attempting to transition shipment ID: {} from {} to {}", shipment.getId(), currentStatus, targetStatus);
 
         Set<ShipmentStatus> allowedNextStatuses = ALLOWED_TRANSITIONS.getOrDefault(currentStatus, Collections.emptySet());
 
         if (!allowedNextStatuses.contains(targetStatus)) {
-            log.warn("Invalid shipment transition requested for ID {}: {} -> {}", shipmentId, currentStatus, targetStatus);
+            log.warn("Invalid shipment transition requested for ID {}: {} -> {}", shipment.getId(), currentStatus, targetStatus);
             throw new BadRequestException(
                     String.format("Cannot transition shipment from %s to %s", currentStatus, targetStatus)
             );
@@ -58,10 +71,14 @@ public class ShipmentLifecycleService {
 
         shipment.setStatus(targetStatus);
         Shipment updated = shipmentRepository.save(shipment);
-        shipmentTrackingService.recordStatusChange(updated, targetStatus);
+        if (trackingDescription != null && !trackingDescription.isBlank()) {
+            shipmentTrackingService.recordStatusChange(updated, targetStatus, trackingDescription, location);
+        } else {
+            shipmentTrackingService.recordStatusChange(updated, targetStatus);
+        }
         log.info("Shipment ID: {} successfully transitioned to status {}", updated.getId(), updated.getStatus());
 
-        return ShipmentResponse.fromEntity(updated);
+        return updated;
     }
 
     public boolean isTransitionAllowed(ShipmentStatus current, ShipmentStatus target) {

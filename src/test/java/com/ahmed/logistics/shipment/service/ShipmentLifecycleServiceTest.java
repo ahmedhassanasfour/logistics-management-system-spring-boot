@@ -103,7 +103,7 @@ class ShipmentLifecycleServiceTest {
     void transitionStatus_validTransitions_succeed(ShipmentStatus initialStatus, ShipmentStatus targetStatus) {
         sampleShipment.setStatus(initialStatus);
 
-        when(shipmentRepository.findById(50L)).thenReturn(Optional.of(sampleShipment));
+        when(shipmentRepository.findByIdForUpdate(50L)).thenReturn(Optional.of(sampleShipment));
         when(shipmentRepository.save(any(Shipment.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         ShipmentResponse response = lifecycleService.transitionStatus(50L, targetStatus);
@@ -135,7 +135,7 @@ class ShipmentLifecycleServiceTest {
     void transitionStatus_invalidTransitions_throwBadRequestException(ShipmentStatus initialStatus, ShipmentStatus targetStatus) {
         sampleShipment.setStatus(initialStatus);
 
-        when(shipmentRepository.findById(50L)).thenReturn(Optional.of(sampleShipment));
+        when(shipmentRepository.findByIdForUpdate(50L)).thenReturn(Optional.of(sampleShipment));
 
         BadRequestException ex = assertThrows(
                 BadRequestException.class,
@@ -156,13 +156,13 @@ class ShipmentLifecycleServiceTest {
         );
 
         assertEquals("Target shipment status must not be null", ex.getMessage());
-        verify(shipmentRepository, never()).findById(any());
+        verify(shipmentRepository, never()).findByIdForUpdate(any());
     }
 
     @Test
     @DisplayName("transitionStatus throws ResourceNotFoundException when shipment not found")
     void transitionStatus_shipmentNotFound_throwsResourceNotFoundException() {
-        when(shipmentRepository.findById(999L)).thenReturn(Optional.empty());
+        when(shipmentRepository.findByIdForUpdate(999L)).thenReturn(Optional.empty());
 
         assertThrows(
                 ResourceNotFoundException.class,
