@@ -11,6 +11,7 @@ import com.ahmed.logistics.shipment.entity.Shipment;
 import com.ahmed.logistics.shipment.entity.ShipmentStatus;
 import com.ahmed.logistics.shipment.entity.ShipmentType;
 import com.ahmed.logistics.shipment.repository.ShipmentRepository;
+import com.ahmed.logistics.shipment.tracking.service.ShipmentTrackingService;
 import com.ahmed.logistics.user.entity.Role;
 import com.ahmed.logistics.user.entity.User;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,6 +49,9 @@ class ShipmentServiceTest {
 
     @Mock
     private ShipmentPricingCalculator pricingCalculator;
+
+    @Mock
+    private ShipmentTrackingService shipmentTrackingService;
 
     @InjectMocks
     private ShipmentService shipmentService;
@@ -140,6 +144,7 @@ class ShipmentServiceTest {
         assertNotNull(response);
         assertEquals(100L, response.id());
         verify(shipmentRepository).save(any(Shipment.class));
+        verify(shipmentTrackingService).recordStatusChange(sampleShipment, ShipmentStatus.CREATED);
     }
 
     @Test

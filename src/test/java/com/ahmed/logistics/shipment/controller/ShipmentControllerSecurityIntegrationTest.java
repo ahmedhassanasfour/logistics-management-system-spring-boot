@@ -4,6 +4,7 @@ import com.ahmed.logistics.customer.entity.Customer;
 import com.ahmed.logistics.customer.repository.CustomerRepository;
 import com.ahmed.logistics.shipment.dto.CreateShipmentRequest;
 import com.ahmed.logistics.shipment.dto.UpdateShipmentRequest;
+import com.ahmed.logistics.shipment.dto.UpdateShipmentStatusRequest;
 import com.ahmed.logistics.shipment.entity.Shipment;
 import com.ahmed.logistics.shipment.entity.ShipmentStatus;
 import com.ahmed.logistics.shipment.entity.ShipmentType;
@@ -388,5 +389,100 @@ class ShipmentControllerSecurityIntegrationTest {
                 .andExpect(jsonPath("$.shipmentType").isNotEmpty())
                 .andExpect(jsonPath("$.pickupAddress").isNotEmpty())
                 .andExpect(jsonPath("$.weightKg").isNotEmpty());
+    }
+
+    @Test
+    @DisplayName("ADMIN can transition shipment status to valid next status")
+    @WithMockUser(username = "admin_shp@logistics.com", roles = "ADMIN")
+    void admin_canTransitionShipmentStatus() throws Exception {
+        UpdateShipmentStatusRequest request = new UpdateShipmentStatusRequest(ShipmentStatus.CONFIRMED);
+
+        mockMvc.perform(patch("/api/shipments/" + shipment1.getId() + "/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(shipment1.getId()))
+                .andExpect(jsonPath("$.status").value("CONFIRMED"));
+    }
+
+    @Test
+    @DisplayName("DISPATCHER can transition shipment status to valid next status")
+    @WithMockUser(username = "dispatcher_shp@logistics.com", roles = "DISPATCHER")
+    void dispatcher_canTransitionShipmentStatus() throws Exception {
+        UpdateShipmentStatusRequest request = new UpdateShipmentStatusRequest(ShipmentStatus.CONFIRMED);
+
+        mockMvc.perform(patch("/api/shipments/" + shipment1.getId() + "/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(shipment1.getId()))
+                .andExpect(jsonPath("$.status").value("CONFIRMED"));
+    }
+
+    @Test
+    @DisplayName("CUSTOMER cannot transition shipment status (403 Forbidden)")
+    @WithMockUser(username = "cust1_shp@logistics.com", roles = "CUSTOMER")
+    void customer_cannotTransitionShipmentStatus() throws Exception {
+        UpdateShipmentStatusRequest request = new UpdateShipmentStatusRequest(ShipmentStatus.CONFIRMED);
+
+        mockMvc.perform(patch("/api/shipments/" + shipment1.getId() + "/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.error").value("Forbidden"));
+    }
+
+    @Test
+    @DisplayName("DRIVER cannot transition shipment status (403 Forbidden)")
+    @WithMockUser(username = "driver@logistics.com", roles = "DRIVER")
+    void driver_cannotTransitionShipmentStatus() throws Exception {
+        UpdateShipmentStatusRequest request = new UpdateShipmentStatusRequest(ShipmentStatus.CONFIRMED);
+
+        mockMvc.perform(patch("/api/shipments/" + shipment1.getId() + "/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.error").value("Forbidden"));
+    }
+
+    @Test
+    @DisplayName("Unauthenticated user cannot transition shipment status (401 Unauthorized)")
+    void unauthenticated_cannotTransitionShipmentStatus() throws Exception {
+        UpdateShipmentStatusRequest request = new UpdateShipmentStatusRequest(ShipmentStatus.CONFIRMED);
+
+        mockMvc.perform(patch("/api/shipments/" + shipment1.getId() + "/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401));
+    }
+
+    @Test
+    @DisplayName("Invalid transition returns 400 Bad Request with descriptive message")
+    @WithMockUser(username = "admin_shp@logistics.com", roles = "ADMIN")
+    void invalidTransition_returnsBadRequest() throws Exception {
+        // Attempt transition from CREATED to DELIVERED
+        UpdateShipmentStatusRequest request = new UpdateShipmentStatusRequest(ShipmentStatus.DELIVERED);
+
+        mockMvc.perform(patch("/api/shipments/" + shipment1.getId() + "/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.message").value("Cannot transition shipment from CREATED to DELIVERED"));
+    }
+
+    @Test
+    @DisplayName("Transition request with null status returns 400 Bad Request")
+    @WithMockUser(username = "admin_shp@logistics.com", roles = "ADMIN")
+    void patchStatus_nullStatus_returns400() throws Exception {
+        mockMvc.perform(patch("/api/shipments/" + shipment1.getId() + "/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\": null}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value("Shipment status is required"));
     }
 }

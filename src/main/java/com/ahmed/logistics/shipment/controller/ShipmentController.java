@@ -3,6 +3,8 @@ package com.ahmed.logistics.shipment.controller;
 import com.ahmed.logistics.shipment.dto.CreateShipmentRequest;
 import com.ahmed.logistics.shipment.dto.ShipmentResponse;
 import com.ahmed.logistics.shipment.dto.UpdateShipmentRequest;
+import com.ahmed.logistics.shipment.dto.UpdateShipmentStatusRequest;
+import com.ahmed.logistics.shipment.service.ShipmentLifecycleService;
 import com.ahmed.logistics.shipment.service.ShipmentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 public class ShipmentController {
 
     private final ShipmentService shipmentService;
+    private final ShipmentLifecycleService shipmentLifecycleService;
 
     @PreAuthorize("@shipmentSecurity.canCreate(#request.customerId(), authentication)")
     @PostMapping
@@ -72,6 +75,16 @@ public class ShipmentController {
             Authentication authentication
     ) {
         ShipmentResponse response = shipmentService.updateShipment(id, request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'DISPATCHER')")
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<ShipmentResponse> updateShipmentStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateShipmentStatusRequest request
+    ) {
+        ShipmentResponse response = shipmentLifecycleService.transitionStatus(id, request.status());
         return ResponseEntity.ok(response);
     }
 

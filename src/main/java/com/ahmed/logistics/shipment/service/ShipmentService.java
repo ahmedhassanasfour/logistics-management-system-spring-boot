@@ -10,6 +10,7 @@ import com.ahmed.logistics.shipment.dto.UpdateShipmentRequest;
 import com.ahmed.logistics.shipment.entity.Shipment;
 import com.ahmed.logistics.shipment.entity.ShipmentStatus;
 import com.ahmed.logistics.shipment.repository.ShipmentRepository;
+import com.ahmed.logistics.shipment.tracking.service.ShipmentTrackingService;
 import com.ahmed.logistics.user.entity.Role;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +28,7 @@ public class ShipmentService {
     private final CustomerRepository customerRepository;
     private final TrackingNumberGenerator trackingNumberGenerator;
     private final ShipmentPricingCalculator pricingCalculator;
+    private final ShipmentTrackingService shipmentTrackingService;
 
     @Transactional
     public ShipmentResponse createShipment(CreateShipmentRequest request) {
@@ -69,6 +71,7 @@ public class ShipmentService {
                 .build();
 
         Shipment saved = shipmentRepository.save(shipment);
+        shipmentTrackingService.recordStatusChange(saved, ShipmentStatus.CREATED);
         log.info("Shipment created successfully with ID: {} and tracking number: {}", saved.getId(), saved.getTrackingNumber());
         return ShipmentResponse.fromEntity(saved);
     }
