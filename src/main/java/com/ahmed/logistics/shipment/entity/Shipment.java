@@ -104,6 +104,9 @@ public class Shipment {
     @Column(name = "height_cm")
     private Double heightCm;
 
+    @Column(name = "distance_km", precision = 10, scale = 2)
+    private BigDecimal distanceKm;
+
     @Column(name = "base_price", nullable = false, precision = 10, scale = 2)
     private BigDecimal basePrice;
 

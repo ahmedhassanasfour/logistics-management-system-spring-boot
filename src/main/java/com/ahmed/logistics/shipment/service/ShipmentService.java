@@ -16,10 +16,12 @@ import com.ahmed.logistics.shipment.pricing.ShipmentPricingService;
 import com.ahmed.logistics.user.entity.Role;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @Slf4j
 @Service
@@ -32,10 +34,32 @@ public class ShipmentService {
     private final ShipmentPricingService pricingService;
     private final ShipmentTrackingService shipmentTrackingService;
 
-    @Transactional
+    @Autowired(required = false)
+    private TransactionTemplate transactionTemplate;
+
     public ShipmentResponse createShipment(CreateShipmentRequest request) {
         log.info("Creating shipment for customer ID: {}", request.customerId());
 
+        // Calculate external distance pricing outside the database transaction
+        ShipmentPricingResponse pricing = pricingService.calculatePrice(
+                request.shipmentType(),
+                request.weightKg(),
+                request.pickupAddress(),
+                request.deliveryAddress()
+        );
+        if (pricing == null) {
+            pricing = pricingService.calculatePrice(request.shipmentType(), request.weightKg());
+        }
+
+        final ShipmentPricingResponse finalPricing = pricing;
+        if (transactionTemplate != null) {
+            return transactionTemplate.execute(status -> doPersistShipment(request, finalPricing));
+        } else {
+            return doPersistShipment(request, finalPricing);
+        }
+    }
+
+    private ShipmentResponse doPersistShipment(CreateShipmentRequest request, ShipmentPricingResponse pricing) {
         Customer customer = customerRepository.findById(request.customerId())
                 .orElseThrow(() -> new ResourceNotFoundException("Customer not found with ID: " + request.customerId()));
 
@@ -44,10 +68,6 @@ public class ShipmentService {
         }
 
         String trackingNumber = generateUniqueTrackingNumber();
-        ShipmentPricingResponse pricing = pricingService.calculatePrice(
-                request.shipmentType(),
-                request.weightKg()
-        );
 
         Shipment shipment = Shipment.builder()
                 .trackingNumber(trackingNumber)
@@ -67,6 +87,7 @@ public class ShipmentService {
                 .lengthCm(request.lengthCm())
                 .widthCm(request.widthCm())
                 .heightCm(request.heightCm())
+                .distanceKm(pricing.distanceKm())
                 .basePrice(pricing.basePrice())
                 .shippingFee(pricing.shippingFee())
                 .totalPrice(pricing.totalPrice())
@@ -110,6 +131,12 @@ public class ShipmentService {
         boolean weightChanged = shipment.getWeightKg() == null
                 ? request.weightKg() != null
                 : request.weightKg() != null && Double.compare(shipment.getWeightKg(), request.weightKg()) != 0;
+        boolean pickupChanged = shipment.getPickupAddress() == null
+                ? request.pickupAddress() != null
+                : !shipment.getPickupAddress().equals(request.pickupAddress());
+        boolean deliveryChanged = shipment.getDeliveryAddress() == null
+                ? request.deliveryAddress() != null
+                : !shipment.getDeliveryAddress().equals(request.deliveryAddress());
 
         shipment.setShipmentType(request.shipmentType());
         shipment.setPickupAddress(request.pickupAddress());
@@ -126,14 +153,22 @@ public class ShipmentService {
         shipment.setWidthCm(request.widthCm());
         shipment.setHeightCm(request.heightCm());
 
-        if (typeChanged || weightChanged) {
+        if (typeChanged || weightChanged || pickupChanged || deliveryChanged) {
             log.info("Pricing-affecting fields changed for shipment ID {}. Recalculating pricing.", id);
             ShipmentPricingResponse pricing = pricingService.calculatePrice(
                     request.shipmentType(),
-                    request.weightKg()
+                    request.weightKg(),
+                    request.pickupAddress(),
+                    request.deliveryAddress()
             );
+            if (pricing == null) {
+                pricing = pricingService.calculatePrice(request.shipmentType(), request.weightKg());
+            }
             shipment.setBasePrice(pricing.basePrice());
             shipment.setShippingFee(pricing.shippingFee());
+            if (pricing.distanceKm() != null) {
+                shipment.setDistanceKm(pricing.distanceKm());
+            }
             shipment.setTotalPrice(pricing.totalPrice());
         }
 

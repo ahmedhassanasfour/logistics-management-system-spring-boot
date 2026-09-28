@@ -3,7 +3,6 @@ package com.ahmed.logistics.shipment.dto;
 import com.ahmed.logistics.shipment.entity.Shipment;
 import com.ahmed.logistics.shipment.entity.ShipmentStatus;
 import com.ahmed.logistics.shipment.entity.ShipmentType;
-
 import com.ahmed.logistics.warehouse.dto.WarehouseSummary;
 
 import java.math.BigDecimal;
@@ -30,6 +29,7 @@ public record ShipmentResponse(
         Double lengthCm,
         Double widthCm,
         Double heightCm,
+        BigDecimal distanceKm,
         BigDecimal basePrice,
         BigDecimal shippingFee,
         BigDecimal totalPrice,
@@ -39,6 +39,42 @@ public record ShipmentResponse(
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
+    public ShipmentResponse(
+            Long id,
+            String trackingNumber,
+            Long customerId,
+            String customerName,
+            String customerEmail,
+            ShipmentStatus status,
+            ShipmentType shipmentType,
+            String pickupAddress,
+            String pickupCity,
+            String pickupPostalCode,
+            String deliveryAddress,
+            String deliveryCity,
+            String deliveryPostalCode,
+            String recipientName,
+            String recipientPhone,
+            String packageDescription,
+            Double weightKg,
+            Double lengthCm,
+            Double widthCm,
+            Double heightCm,
+            BigDecimal basePrice,
+            BigDecimal shippingFee,
+            BigDecimal totalPrice,
+            DriverSummary driver,
+            VehicleSummary vehicle,
+            WarehouseSummary currentWarehouse,
+            LocalDateTime createdAt,
+            LocalDateTime updatedAt
+    ) {
+        this(id, trackingNumber, customerId, customerName, customerEmail, status, shipmentType,
+                pickupAddress, pickupCity, pickupPostalCode, deliveryAddress, deliveryCity, deliveryPostalCode,
+                recipientName, recipientPhone, packageDescription, weightKg, lengthCm, widthCm, heightCm,
+                null, basePrice, shippingFee, totalPrice, driver, vehicle, currentWarehouse, createdAt, updatedAt);
+    }
+
     public static ShipmentResponse fromEntity(Shipment shipment) {
         String customerName = null;
         String customerEmail = null;
@@ -74,6 +110,7 @@ public record ShipmentResponse(
                 shipment.getLengthCm(),
                 shipment.getWidthCm(),
                 shipment.getHeightCm(),
+                shipment.getDistanceKm(),
                 shipment.getBasePrice(),
                 shipment.getShippingFee(),
                 shipment.getTotalPrice(),
