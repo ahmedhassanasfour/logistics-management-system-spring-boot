@@ -1,6 +1,7 @@
 package com.ahmed.logistics.shipment.security;
 
 import com.ahmed.logistics.customer.repository.CustomerRepository;
+import com.ahmed.logistics.shipment.entity.Shipment;
 import com.ahmed.logistics.shipment.repository.ShipmentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -47,9 +48,12 @@ public class ShipmentSecurity {
             return true;
         }
 
+        if (shipmentId == null) {
+            return false;
+        }
+
         return shipmentRepository.findById(shipmentId)
-                .map(shipment ->
-                        shipment.getCustomer().getUser().getEmail().equalsIgnoreCase(authentication.getName()))
+                .map(shipment -> isAuthorizedToViewShipment(shipment, authentication))
                 .orElse(false);
     }
 
@@ -65,10 +69,35 @@ public class ShipmentSecurity {
             return true;
         }
 
+        if (trackingNumber == null || trackingNumber.isBlank()) {
+            return false;
+        }
+
         return shipmentRepository.findByTrackingNumber(trackingNumber)
-                .map(shipment ->
-                        shipment.getCustomer().getUser().getEmail().equalsIgnoreCase(authentication.getName()))
+                .map(shipment -> isAuthorizedToViewShipment(shipment, authentication))
                 .orElse(false);
+    }
+
+    private boolean isAuthorizedToViewShipment(Shipment shipment, Authentication authentication) {
+        if (shipment == null) {
+            return false;
+        }
+
+        // 1. Customer ownership
+        if (shipment.getCustomer() != null && shipment.getCustomer().getUser() != null) {
+            if (shipment.getCustomer().getUser().getEmail().equalsIgnoreCase(authentication.getName())) {
+                return true;
+            }
+        }
+
+        // 2. Assigned driver ownership
+        if (shipment.getDriver() != null && shipment.getDriver().getUser() != null) {
+            if (shipment.getDriver().getUser().getEmail().equalsIgnoreCase(authentication.getName())) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public boolean canReadCustomerShipments(Long customerId, Authentication authentication) {
