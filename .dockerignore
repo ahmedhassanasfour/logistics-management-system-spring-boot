@@ -1,0 +1,16 @@
+.git
+.gitignore
+.env
+.env.*
+.idea
+.vscode
+*.iml
+logs
+*.log
+target/classes
+target/generated-sources
+target/maven-status
+target/surefire-reports
+target/test-classes
+target/archive-tmp
+!target/*.jar

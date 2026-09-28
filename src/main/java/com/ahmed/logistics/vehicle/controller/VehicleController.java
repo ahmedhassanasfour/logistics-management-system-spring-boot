@@ -4,6 +4,7 @@ import com.ahmed.logistics.vehicle.dto.CreateVehicleRequest;
 import com.ahmed.logistics.vehicle.dto.UpdateVehicleRequest;
 import com.ahmed.logistics.vehicle.dto.VehicleResponse;
 import com.ahmed.logistics.vehicle.service.VehicleService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -11,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+@Tag(name = "Vehicles", description = "Fleet vehicle inventory and maintenance status")
 @RestController
 @RequestMapping("/api/vehicles")
 @RequiredArgsConstructor

@@ -3,6 +3,7 @@ package com.ahmed.logistics.delivery.failure.controller;
 import com.ahmed.logistics.delivery.failure.dto.CreateDeliveryFailureRequest;
 import com.ahmed.logistics.delivery.failure.dto.DeliveryFailureResponse;
 import com.ahmed.logistics.delivery.failure.service.DeliveryFailureService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Tag(name = "Delivery Failures", description = "Failed delivery attempt logs and reason tracking")
 @RestController
 @RequestMapping("/api/deliveries")
 @RequiredArgsConstructor

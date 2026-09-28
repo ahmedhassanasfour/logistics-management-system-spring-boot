@@ -4,6 +4,7 @@ import com.ahmed.logistics.delivery.dto.DeliveryResponse;
 import com.ahmed.logistics.delivery.reschedule.dto.CreateRescheduleRequest;
 import com.ahmed.logistics.delivery.reschedule.dto.RescheduleResponse;
 import com.ahmed.logistics.delivery.reschedule.service.DeliveryRescheduleService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Tag(name = "Delivery Rescheduling", description = "Delivery rescheduling requests and attempt tracking")
 @RestController
 @RequestMapping("/api/deliveries")
 @RequiredArgsConstructor

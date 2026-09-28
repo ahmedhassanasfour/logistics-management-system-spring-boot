@@ -4,6 +4,7 @@ import com.ahmed.logistics.branch.dto.BranchResponse;
 import com.ahmed.logistics.branch.dto.CreateBranchRequest;
 import com.ahmed.logistics.branch.dto.UpdateBranchRequest;
 import com.ahmed.logistics.branch.service.BranchService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -11,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+@Tag(name = "Branches", description = "Branch locations and dispatch centers")
 @RestController
 @RequestMapping("/api/branches")
 @RequiredArgsConstructor

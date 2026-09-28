@@ -3,6 +3,7 @@ package com.ahmed.logistics.delivery.pod.controller;
 import com.ahmed.logistics.delivery.pod.dto.CreateProofOfDeliveryRequest;
 import com.ahmed.logistics.delivery.pod.dto.ProofOfDeliveryResponse;
 import com.ahmed.logistics.delivery.pod.service.ProofOfDeliveryService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -11,6 +12,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+@Tag(name = "Proof of Delivery", description = "Proof of delivery (POD) records, recipient signatures, and delivery completion confirmation")
 @RestController
 @RequestMapping("/api/deliveries")
 @RequiredArgsConstructor
