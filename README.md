@@ -47,36 +47,51 @@ The application adopts a decoupled, event-driven, domain-centric architecture:
 
 ```mermaid
 flowchart TD
-    Client([HTTP / Mobile / Web Clients]) -->|REST API + JWT Bearer| SecurityFilter[Spring Security & JWT Filter Chain]
-    SecurityFilter --> RateLimiter[Redis Rate Limiter & Idempotency Check]
-    RateLimiter --> Controllers[Spring MVC REST Controllers]
+    Client(["HTTP / Mobile / Web Clients"]) -->|REST API + JWT Bearer| SecurityFilter["Spring Security & JWT Filter Chain"]
+    SecurityFilter --> RateLimiter["Redis Rate Limiter & Idempotency Check"]
+    RateLimiter --> Controllers["Spring MVC REST Controllers"]
 
-    subgraph Core Domain Services
-        Controllers --> ShipmentSvc[Shipment & Pricing Service]
-        Controllers --> DeliverySvc[Delivery & POD Service]
-        Controllers --> PaymentSvc[Payment & COD Service]
-        Controllers --> WarehouseSvc[Warehouse Movement Service]
-        Controllers --> FleetSvc[Driver & Fleet Service]
+    subgraph CoreServices ["Core Domain Services"]
+        ShipmentSvc["Shipment & Pricing Service"]
+        DeliverySvc["Delivery & POD Service"]
+        PaymentSvc["Payment & COD Service"]
+        WarehouseSvc["Warehouse Movement Service"]
+        FleetSvc["Driver & Fleet Service"]
     end
 
-    ShipmentSvc --> GeoEngine[Geocoding & Distance Calculator - Nominatim/Haversine]
-    PaymentSvc --> RedisIdempotency[Redis Idempotency Store TTL 24h]
+    Controllers --> ShipmentSvc
+    Controllers --> DeliverySvc
+    Controllers --> PaymentSvc
+    Controllers --> WarehouseSvc
+    Controllers --> FleetSvc
 
-    subgraph Event-Driven Subsystem
-        ShipmentSvc -.->|Publish Event| AppEvents[Spring ApplicationEventPublisher]
-        DeliverySvc -.->|Publish Event| AppEvents
-        PaymentSvc -.->|Publish Event| AppEvents
+    ShipmentSvc --> GeoEngine["Geocoding & Distance Calculator (Nominatim/Haversine)"]
+    PaymentSvc --> RedisIdempotency["Redis Idempotency Store (TTL 24h)"]
 
-        AppEvents -->|Async ThreadPool| NotifListener[Notification Event Listener]
-        AppEvents -->|Async ThreadPool| EmailListener[Email Event Listener]
+    subgraph EventSubsystem ["Event-Driven Subsystem"]
+        AppEvents["Spring ApplicationEventPublisher"]
+        NotifListener["Notification Event Listener"]
+        EmailListener["Email Event Listener"]
+        NotifSvc["Persistent Notification Service"]
+        MailSender["JavaMailSender / SMTP Gateway"]
 
-        NotifListener --> NotifSvc[Persistent Notification Service]
-        EmailListener --> MailSender[JavaMailSender / SMTP Gateway]
+        AppEvents -->|Async ThreadPool| NotifListener
+        AppEvents -->|Async ThreadPool| EmailListener
+        NotifListener --> NotifSvc
+        EmailListener --> MailSender
     end
 
-    Core Domain Services --> PostgreSQL[(PostgreSQL 17 Database)]
+    ShipmentSvc -.->|Publish Event| AppEvents
+    DeliverySvc -.->|Publish Event| AppEvents
+    PaymentSvc -.->|Publish Event| AppEvents
+
+    ShipmentSvc --> PostgreSQL[("PostgreSQL 17 Database")]
+    DeliverySvc --> PostgreSQL
+    PaymentSvc --> PostgreSQL
     NotifSvc --> PostgreSQL
-    Core Domain Services --> RedisCache[(Redis 7 Cache)]
+
+    ShipmentSvc --> RedisCache[("Redis 7 Cache")]
+    RedisIdempotency --> RedisCache
 ```
 
 ---
