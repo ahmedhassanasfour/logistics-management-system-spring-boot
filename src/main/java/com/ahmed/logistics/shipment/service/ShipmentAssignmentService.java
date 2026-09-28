@@ -16,6 +16,9 @@ import com.ahmed.logistics.vehicle.entity.VehicleStatus;
 import com.ahmed.logistics.vehicle.repository.VehicleRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import com.ahmed.logistics.config.CacheNames;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -49,6 +52,10 @@ public class ShipmentAssignmentService {
     public static final String ASSIGNMENT_TRACKING_DESCRIPTION = "Driver and vehicle assigned";
 
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = CacheNames.DRIVER, allEntries = true),
+            @CacheEvict(value = CacheNames.VEHICLE, allEntries = true)
+    })
     public ShipmentResponse assignDriverAndVehicle(Long shipmentId, Long driverId, Long vehicleId) {
         if (shipmentId == null) {
             throw new BadRequestException("Shipment ID must not be null");

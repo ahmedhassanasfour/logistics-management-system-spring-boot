@@ -1,16 +1,21 @@
 package com.ahmed.logistics.branch.service;
 
-import com.ahmed.logistics.branch.dto.CreateBranchRequest;
 import com.ahmed.logistics.branch.dto.BranchResponse;
+import com.ahmed.logistics.branch.dto.CreateBranchRequest;
 import com.ahmed.logistics.branch.dto.UpdateBranchRequest;
 import com.ahmed.logistics.branch.entity.Branch;
 import com.ahmed.logistics.branch.entity.BranchStatus;
 import com.ahmed.logistics.branch.repository.BranchRepository;
+import com.ahmed.logistics.config.CacheNames;
 import com.ahmed.logistics.exception.BadRequestException;
 import com.ahmed.logistics.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -20,6 +25,7 @@ public class BranchService {
     private final BranchRepository branchRepository;
 
     @Transactional
+    @CacheEvict(value = CacheNames.BRANCH, allEntries = true)
     public BranchResponse createBranch(CreateBranchRequest request) {
         String code = request.code().trim();
         if (branchRepository.existsByCode(code)) {
@@ -41,12 +47,21 @@ public class BranchService {
         return BranchResponse.fromEntity(saved);
     }
 
+    @Cacheable(value = CacheNames.BRANCH, key = "#id")
     public BranchResponse getBranchById(Long id) {
         Branch branch = branchRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Branch not found with id: " + id));
         return BranchResponse.fromEntity(branch);
     }
 
+    @Cacheable(value = CacheNames.BRANCH, key = "'all'")
+    public List<BranchResponse> getBranches() {
+        return branchRepository.findAll().stream()
+                .map(BranchResponse::fromEntity)
+                .toList();
+    }
+
+    @Cacheable(value = CacheNames.BRANCH, key = "'code:' + #code.trim().toUpperCase()")
     public BranchResponse getBranchByCode(String code) {
         Branch branch = branchRepository.findByCode(code.trim())
                 .orElseThrow(() -> new ResourceNotFoundException("Branch not found with code: " + code.trim()));
@@ -54,6 +69,7 @@ public class BranchService {
     }
 
     @Transactional
+    @CacheEvict(value = CacheNames.BRANCH, allEntries = true)
     public BranchResponse updateBranch(Long id, UpdateBranchRequest request) {
         Branch branch = branchRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Branch not found with id: " + id));
@@ -79,6 +95,7 @@ public class BranchService {
     }
 
     @Transactional
+    @CacheEvict(value = CacheNames.BRANCH, allEntries = true)
     public void deleteBranch(Long id) {
         Branch branch = branchRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Branch not found with id: " + id));
@@ -86,3 +103,4 @@ public class BranchService {
         branchRepository.delete(branch);
     }
 }
+

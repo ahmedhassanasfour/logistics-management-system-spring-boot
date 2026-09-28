@@ -1,5 +1,6 @@
 package com.ahmed.logistics.vehicle.service;
 
+import com.ahmed.logistics.config.CacheNames;
 import com.ahmed.logistics.exception.BadRequestException;
 import com.ahmed.logistics.exception.ResourceNotFoundException;
 import com.ahmed.logistics.vehicle.dto.CreateVehicleRequest;
@@ -9,8 +10,12 @@ import com.ahmed.logistics.vehicle.entity.Vehicle;
 import com.ahmed.logistics.vehicle.entity.VehicleStatus;
 import com.ahmed.logistics.vehicle.repository.VehicleRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -20,6 +25,7 @@ public class VehicleService {
     private final VehicleRepository vehicleRepository;
 
     @Transactional
+    @CacheEvict(value = CacheNames.VEHICLE, allEntries = true)
     public VehicleResponse createVehicle(CreateVehicleRequest request) {
         String plateNumber = request.plateNumber().trim();
         if (vehicleRepository.existsByPlateNumber(plateNumber)) {
@@ -40,12 +46,21 @@ public class VehicleService {
         return VehicleResponse.fromEntity(saved);
     }
 
+    @Cacheable(value = CacheNames.VEHICLE, key = "#id")
     public VehicleResponse getVehicleById(Long id) {
         Vehicle vehicle = vehicleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + id));
         return VehicleResponse.fromEntity(vehicle);
     }
 
+    @Cacheable(value = CacheNames.VEHICLE, key = "'all'")
+    public List<VehicleResponse> getVehicles() {
+        return vehicleRepository.findAll().stream()
+                .map(VehicleResponse::fromEntity)
+                .toList();
+    }
+
+    @Cacheable(value = CacheNames.VEHICLE, key = "'plate:' + #plateNumber.trim().toUpperCase()")
     public VehicleResponse getVehicleByPlateNumber(String plateNumber) {
         Vehicle vehicle = vehicleRepository.findByPlateNumber(plateNumber.trim())
                 .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with plate number: " + plateNumber.trim()));
@@ -53,6 +68,7 @@ public class VehicleService {
     }
 
     @Transactional
+    @CacheEvict(value = CacheNames.VEHICLE, allEntries = true)
     public VehicleResponse updateVehicle(Long id, UpdateVehicleRequest request) {
         Vehicle vehicle = vehicleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + id));
@@ -76,6 +92,18 @@ public class VehicleService {
     }
 
     @Transactional
+    @CacheEvict(value = CacheNames.VEHICLE, allEntries = true)
+    public VehicleResponse updateStatus(Long id, VehicleStatus status) {
+        Vehicle vehicle = vehicleRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + id));
+
+        vehicle.setStatus(status);
+        Vehicle updated = vehicleRepository.save(vehicle);
+        return VehicleResponse.fromEntity(updated);
+    }
+
+    @Transactional
+    @CacheEvict(value = CacheNames.VEHICLE, allEntries = true)
     public void deleteVehicle(Long id) {
         Vehicle vehicle = vehicleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + id));
@@ -83,3 +111,4 @@ public class VehicleService {
         vehicleRepository.delete(vehicle);
     }
 }
+

@@ -45,6 +45,13 @@ public class DriverController {
         return ResponseEntity.ok(response);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'DISPATCHER')")
+    @GetMapping
+    public ResponseEntity<java.util.List<DriverResponse>> getDrivers() {
+        java.util.List<DriverResponse> responses = driverService.getDrivers();
+        return ResponseEntity.ok(responses);
+    }
+
     @PreAuthorize("@driverSecurity.canRead(#id, authentication)")
     @GetMapping("/{id}")
     public ResponseEntity<DriverResponse> getDriverById(
@@ -53,6 +60,17 @@ public class DriverController {
     ) {
         DriverResponse driver = driverService.getDriverById(id);
         return ResponseEntity.ok(driver);
+    }
+
+    @PreAuthorize("hasRole('ADMIN') or hasRole('DISPATCHER') or @driverSecurity.isOwnerOrAdmin(#id, authentication)")
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<DriverResponse> updateDriverStatus(
+            @PathVariable Long id,
+            @RequestParam com.ahmed.logistics.driver.entity.DriverStatus status,
+            Authentication authentication
+    ) {
+        DriverResponse updated = driverService.updateStatus(id, status);
+        return ResponseEntity.ok(updated);
     }
 
     @PreAuthorize("@driverSecurity.isOwnerOrAdmin(#id, authentication)")

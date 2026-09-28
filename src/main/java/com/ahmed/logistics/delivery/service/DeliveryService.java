@@ -22,6 +22,9 @@ import com.ahmed.logistics.delivery.reschedule.entity.RescheduleStatus;
 import com.ahmed.logistics.delivery.reschedule.repository.DeliveryRescheduleRepository;
 import com.ahmed.logistics.vehicle.entity.VehicleStatus;
 import com.ahmed.logistics.vehicle.repository.VehicleRepository;
+import com.ahmed.logistics.config.CacheNames;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -46,6 +49,10 @@ public class DeliveryService {
     private static final String TRACKING_DELIVERY_COMPLETED = "Delivery completed";
 
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = CacheNames.DRIVER, allEntries = true),
+            @CacheEvict(value = CacheNames.VEHICLE, allEntries = true)
+    })
     public DeliveryResponse startDelivery(Long shipmentId) {
         log.info("Starting delivery for shipment ID: {}", shipmentId);
 
@@ -127,6 +134,10 @@ public class DeliveryService {
     }
 
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = CacheNames.DRIVER, allEntries = true),
+            @CacheEvict(value = CacheNames.VEHICLE, allEntries = true)
+    })
     public DeliveryResponse completeDelivery(Long shipmentId, String deliveryNotes) {
         log.info("Completing delivery for shipment ID: {}", shipmentId);
 

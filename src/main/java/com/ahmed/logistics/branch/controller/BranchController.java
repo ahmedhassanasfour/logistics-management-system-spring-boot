@@ -28,6 +28,13 @@ public class BranchController {
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'DISPATCHER', 'DRIVER', 'CUSTOMER')")
+    @GetMapping
+    public ResponseEntity<java.util.List<BranchResponse>> getBranches() {
+        java.util.List<BranchResponse> responses = branchService.getBranches();
+        return ResponseEntity.ok(responses);
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'DISPATCHER', 'DRIVER', 'CUSTOMER')")
     @GetMapping("/{id}")
     public ResponseEntity<BranchResponse> getBranchById(@PathVariable Long id) {
         BranchResponse response = branchService.getBranchById(id);

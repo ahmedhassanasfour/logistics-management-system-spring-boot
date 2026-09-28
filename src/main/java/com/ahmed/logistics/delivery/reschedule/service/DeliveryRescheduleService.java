@@ -23,6 +23,9 @@ import com.ahmed.logistics.vehicle.entity.VehicleStatus;
 import com.ahmed.logistics.vehicle.repository.VehicleRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import com.ahmed.logistics.config.CacheNames;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,6 +49,10 @@ public class DeliveryRescheduleService {
     private static final String TRACKING_NEW_ATTEMPT_CREATED = "New delivery attempt created";
 
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = CacheNames.DRIVER, allEntries = true),
+            @CacheEvict(value = CacheNames.VEHICLE, allEntries = true)
+    })
     public RescheduleResponse reschedule(Long deliveryId, CreateRescheduleRequest request) {
         log.info("Attempting to reschedule delivery ID: {}", deliveryId);
 

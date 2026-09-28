@@ -28,6 +28,13 @@ public class VehicleController {
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'DISPATCHER', 'DRIVER', 'CUSTOMER')")
+    @GetMapping
+    public ResponseEntity<java.util.List<VehicleResponse>> getVehicles() {
+        java.util.List<VehicleResponse> responses = vehicleService.getVehicles();
+        return ResponseEntity.ok(responses);
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'DISPATCHER', 'DRIVER', 'CUSTOMER')")
     @GetMapping("/{id}")
     public ResponseEntity<VehicleResponse> getVehicleById(@PathVariable Long id) {
         VehicleResponse response = vehicleService.getVehicleById(id);
@@ -48,6 +55,16 @@ public class VehicleController {
             @Valid @RequestBody UpdateVehicleRequest request
     ) {
         VehicleResponse updated = vehicleService.updateVehicle(id, request);
+        return ResponseEntity.ok(updated);
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'DISPATCHER')")
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<VehicleResponse> updateVehicleStatus(
+            @PathVariable Long id,
+            @RequestParam com.ahmed.logistics.vehicle.entity.VehicleStatus status
+    ) {
+        VehicleResponse updated = vehicleService.updateStatus(id, status);
         return ResponseEntity.ok(updated);
     }
 

@@ -1,5 +1,6 @@
 package com.ahmed.logistics.warehouse.service;
 
+import com.ahmed.logistics.config.CacheNames;
 import com.ahmed.logistics.exception.BadRequestException;
 import com.ahmed.logistics.exception.ResourceNotFoundException;
 import com.ahmed.logistics.warehouse.dto.CreateWarehouseRequest;
@@ -9,8 +10,12 @@ import com.ahmed.logistics.warehouse.entity.Warehouse;
 import com.ahmed.logistics.warehouse.entity.WarehouseStatus;
 import com.ahmed.logistics.warehouse.repository.WarehouseRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -20,6 +25,7 @@ public class WarehouseService {
     private final WarehouseRepository warehouseRepository;
 
     @Transactional
+    @CacheEvict(value = CacheNames.WAREHOUSE, allEntries = true)
     public WarehouseResponse createWarehouse(CreateWarehouseRequest request) {
         String name = request.name().trim();
         if (warehouseRepository.existsByName(name)) {
@@ -40,12 +46,21 @@ public class WarehouseService {
         return WarehouseResponse.fromEntity(saved);
     }
 
+    @Cacheable(value = CacheNames.WAREHOUSE, key = "#id")
     public WarehouseResponse getWarehouseById(Long id) {
         Warehouse warehouse = warehouseRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Warehouse not found with id: " + id));
         return WarehouseResponse.fromEntity(warehouse);
     }
 
+    @Cacheable(value = CacheNames.WAREHOUSE, key = "'all'")
+    public List<WarehouseResponse> getWarehouses() {
+        return warehouseRepository.findAll().stream()
+                .map(WarehouseResponse::fromEntity)
+                .toList();
+    }
+
+    @Cacheable(value = CacheNames.WAREHOUSE, key = "'name:' + #name.trim().toLowerCase()")
     public WarehouseResponse getWarehouseByName(String name) {
         Warehouse warehouse = warehouseRepository.findByName(name.trim())
                 .orElseThrow(() -> new ResourceNotFoundException("Warehouse not found with name: " + name.trim()));
@@ -53,6 +68,7 @@ public class WarehouseService {
     }
 
     @Transactional
+    @CacheEvict(value = CacheNames.WAREHOUSE, allEntries = true)
     public WarehouseResponse updateWarehouse(Long id, UpdateWarehouseRequest request) {
         Warehouse warehouse = warehouseRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Warehouse not found with id: " + id));
@@ -77,6 +93,7 @@ public class WarehouseService {
     }
 
     @Transactional
+    @CacheEvict(value = CacheNames.WAREHOUSE, allEntries = true)
     public void deleteWarehouse(Long id) {
         Warehouse warehouse = warehouseRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Warehouse not found with id: " + id));
@@ -84,3 +101,4 @@ public class WarehouseService {
         warehouseRepository.delete(warehouse);
     }
 }
+

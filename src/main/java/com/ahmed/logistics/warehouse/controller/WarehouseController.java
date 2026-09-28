@@ -28,6 +28,13 @@ public class WarehouseController {
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'DISPATCHER', 'DRIVER', 'CUSTOMER')")
+    @GetMapping
+    public ResponseEntity<java.util.List<WarehouseResponse>> getWarehouses() {
+        java.util.List<WarehouseResponse> responses = warehouseService.getWarehouses();
+        return ResponseEntity.ok(responses);
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'DISPATCHER', 'DRIVER', 'CUSTOMER')")
     @GetMapping("/{id}")
     public ResponseEntity<WarehouseResponse> getWarehouseById(@PathVariable Long id) {
         WarehouseResponse response = warehouseService.getWarehouseById(id);
