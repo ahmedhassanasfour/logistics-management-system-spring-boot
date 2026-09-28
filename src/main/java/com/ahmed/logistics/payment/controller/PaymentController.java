@@ -1,5 +1,7 @@
 package com.ahmed.logistics.payment.controller;
 
+import com.ahmed.logistics.common.idempotency.service.IdempotencyHashService;
+import com.ahmed.logistics.common.idempotency.service.IdempotencyService;
 import com.ahmed.logistics.payment.dto.CreatePaymentRequest;
 import com.ahmed.logistics.payment.dto.PaymentResponse;
 import com.ahmed.logistics.payment.service.PaymentService;
@@ -16,15 +18,27 @@ import org.springframework.web.bind.annotation.*;
 public class PaymentController {
 
     private final PaymentService paymentService;
+    private final IdempotencyService idempotencyService;
+    private final IdempotencyHashService idempotencyHashService;
 
     @PreAuthorize("@paymentSecurity.canCreateForShipment(#shipmentId, authentication)")
     @PostMapping("/api/shipments/{shipmentId}/payment")
     public ResponseEntity<PaymentResponse> createPayment(
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
             @PathVariable Long shipmentId,
             @Valid @RequestBody CreatePaymentRequest request,
             Authentication authentication
     ) {
-        PaymentResponse response = paymentService.createPayment(shipmentId, request);
+        String requestHash = idempotencyHashService.hashPaymentCreation(shipmentId, request);
+        PaymentResponse response = idempotencyService.execute(
+                idempotencyKey,
+                "CREATE_PAYMENT",
+                requestHash,
+                authentication != null ? authentication.getName() : null,
+                PaymentResponse.class,
+                HttpStatus.CREATED.value(),
+                () -> paymentService.createPayment(shipmentId, request)
+        );
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 

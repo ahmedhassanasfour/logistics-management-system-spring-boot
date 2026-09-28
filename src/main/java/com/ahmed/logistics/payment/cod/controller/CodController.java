@@ -1,5 +1,7 @@
 package com.ahmed.logistics.payment.cod.controller;
 
+import com.ahmed.logistics.common.idempotency.service.IdempotencyHashService;
+import com.ahmed.logistics.common.idempotency.service.IdempotencyService;
 import com.ahmed.logistics.payment.cod.dto.CollectCodRequest;
 import com.ahmed.logistics.payment.cod.dto.CreateCodRequest;
 import com.ahmed.logistics.payment.cod.dto.FailCodRequest;
@@ -18,6 +20,8 @@ import org.springframework.web.bind.annotation.*;
 public class CodController {
 
     private final CashOnDeliveryService cashOnDeliveryService;
+    private final IdempotencyService idempotencyService;
+    private final IdempotencyHashService idempotencyHashService;
 
     @PreAuthorize("@codSecurity.canCreate(#deliveryId, authentication)")
     @PostMapping("/api/deliveries/{deliveryId}/cod")
@@ -52,15 +56,25 @@ public class CodController {
     @PreAuthorize("@codSecurity.canCollect(#codId, authentication)")
     @PatchMapping("/api/cod/{codId}/collect")
     public ResponseEntity<CodResponse> collectCod(
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
             @PathVariable Long codId,
             @Valid @RequestBody CollectCodRequest request,
             Authentication authentication
     ) {
-        CodResponse response = cashOnDeliveryService.collectCod(
-                codId,
-                request.collectedAmount(),
-                request.notes(),
-                authentication
+        String requestHash = idempotencyHashService.hashCodCollection(codId, request);
+        CodResponse response = idempotencyService.execute(
+                idempotencyKey,
+                "COLLECT_COD",
+                requestHash,
+                authentication != null ? authentication.getName() : null,
+                CodResponse.class,
+                HttpStatus.OK.value(),
+                () -> cashOnDeliveryService.collectCod(
+                        codId,
+                        request.collectedAmount(),
+                        request.notes(),
+                        authentication
+                )
         );
         return ResponseEntity.ok(response);
     }
