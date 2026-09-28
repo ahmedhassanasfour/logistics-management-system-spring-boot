@@ -120,8 +120,9 @@ public class DeliveryFailureService {
 
         log.info("Delivery failure recorded successfully with ID: {} for delivery ID: {}", savedFailure.getId(), deliveryId);
 
+        Long customerId = lockedShipment.getCustomer() != null ? lockedShipment.getCustomer().getId() : null;
         Long driverId = delivery.getDriver() != null ? delivery.getDriver().getId() : null;
-        eventPublisher.publishEvent(new DeliveryFailedEvent(delivery.getId(), lockedShipment.getId(), driverId, request.reason()));
+        eventPublisher.publishEvent(new DeliveryFailedEvent(delivery.getId(), lockedShipment.getId(), customerId, driverId, request.reason()));
 
         return DeliveryFailureResponse.fromEntity(savedFailure);
     }
