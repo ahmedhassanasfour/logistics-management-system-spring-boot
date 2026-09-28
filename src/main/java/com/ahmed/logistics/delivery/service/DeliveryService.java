@@ -18,9 +18,15 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import com.ahmed.logistics.delivery.pod.repository.ProofOfDeliveryRepository;
+import com.ahmed.logistics.delivery.reschedule.entity.RescheduleStatus;
+import com.ahmed.logistics.delivery.reschedule.repository.DeliveryRescheduleRepository;
+import com.ahmed.logistics.vehicle.entity.VehicleStatus;
+import com.ahmed.logistics.vehicle.repository.VehicleRepository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
+import java.util.Set;
 
 @Slf4j
 @Service
@@ -30,9 +36,11 @@ public class DeliveryService {
     private final DeliveryRepository deliveryRepository;
     private final ShipmentRepository shipmentRepository;
     private final DriverRepository driverRepository;
+    private final VehicleRepository vehicleRepository;
     private final ShipmentLifecycleService shipmentLifecycleService;
     private final ShipmentTrackingService shipmentTrackingService;
     private final ProofOfDeliveryRepository proofOfDeliveryRepository;
+    private final DeliveryRescheduleRepository deliveryRescheduleRepository;
 
     private static final String TRACKING_DELIVERY_STARTED = "Delivery started";
     private static final String TRACKING_DELIVERY_COMPLETED = "Delivery completed";
@@ -67,22 +75,33 @@ public class DeliveryService {
             );
         }
 
-        // 6. Verify there is no existing active Delivery for the shipment
-        deliveryRepository.findByShipmentId(shipmentId).ifPresent(existing -> {
-            log.warn("Active or existing delivery found for shipment ID {}: status {}", shipmentId, existing.getStatus());
-            if (existing.getStatus() == DeliveryStatus.IN_PROGRESS || existing.getStatus() == DeliveryStatus.ASSIGNED) {
+        // 6. Check existing active Delivery for the shipment
+        Optional<Delivery> activeDeliveryOpt = deliveryRepository.findActiveDeliveryForUpdate(
+                shipmentId, Set.of(DeliveryStatus.ASSIGNED, DeliveryStatus.IN_PROGRESS)
+        );
+
+        Delivery delivery;
+        if (activeDeliveryOpt.isPresent()) {
+            Delivery existing = activeDeliveryOpt.get();
+            if (existing.getStatus() == DeliveryStatus.IN_PROGRESS) {
+                log.warn("Cannot start delivery: Delivery ID {} is already IN_PROGRESS", existing.getId());
                 throw new BadRequestException("Shipment already has an active delivery in progress");
             }
-            throw new BadRequestException("Delivery record already exists for shipment with status: " + existing.getStatus());
-        });
-
-        // 7. Create Delivery with shipment, assigned driver, status IN_PROGRESS, startedAt = now
-        Delivery delivery = Delivery.builder()
-                .shipment(shipment)
-                .driver(shipment.getDriver())
-                .status(DeliveryStatus.IN_PROGRESS)
-                .startedAt(LocalDateTime.now())
-                .build();
+            // Transition ASSIGNED -> IN_PROGRESS
+            existing.setStatus(DeliveryStatus.IN_PROGRESS);
+            existing.setStartedAt(LocalDateTime.now());
+            if (existing.getDriver() == null && shipment.getDriver() != null) {
+                existing.setDriver(shipment.getDriver());
+            }
+            delivery = existing;
+        } else {
+            delivery = Delivery.builder()
+                    .shipment(shipment)
+                    .driver(shipment.getDriver())
+                    .status(DeliveryStatus.IN_PROGRESS)
+                    .startedAt(LocalDateTime.now())
+                    .build();
+        }
 
         // 8. Persist the Delivery
         Delivery savedDelivery = deliveryRepository.save(delivery);
@@ -116,7 +135,8 @@ public class DeliveryService {
                 .orElseThrow(() -> new ResourceNotFoundException("Shipment not found with ID: " + shipmentId));
 
         // 2. Find and lock its Delivery
-        Delivery delivery = deliveryRepository.findByShipmentIdForUpdate(shipmentId)
+        Delivery delivery = deliveryRepository.findActiveDeliveryForUpdate(shipmentId, Set.of(DeliveryStatus.IN_PROGRESS))
+                .or(() -> deliveryRepository.findByShipmentIdForUpdate(shipmentId))
                 .orElseThrow(() -> new ResourceNotFoundException("Delivery not found for shipment ID: " + shipmentId));
 
         // 3. Lock the assigned Driver
@@ -164,6 +184,24 @@ public class DeliveryService {
             log.info("Driver ID: {} status transitioned to AVAILABLE", driver.getId());
         }
 
+        // 10. Set Vehicle: IN_USE -> AVAILABLE
+        if (shipment.getVehicle() != null) {
+            vehicleRepository.findByIdForUpdate(shipment.getVehicle().getId())
+                    .ifPresent(vehicle -> {
+                        vehicle.setStatus(VehicleStatus.AVAILABLE);
+                        vehicleRepository.save(vehicle);
+                        log.info("Vehicle ID: {} status transitioned to AVAILABLE", vehicle.getId());
+                    });
+        }
+
+        // 11. Mark active reschedule as COMPLETED if present
+        deliveryRescheduleRepository.findFirstByShipmentIdAndStatus(shipmentId, RescheduleStatus.SCHEDULED)
+                .ifPresent(reschedule -> {
+                    reschedule.setStatus(RescheduleStatus.COMPLETED);
+                    deliveryRescheduleRepository.save(reschedule);
+                    log.info("Reschedule ID: {} marked as COMPLETED for shipment ID: {}", reschedule.getId(), shipmentId);
+                });
+
         log.info("Delivery ID: {} successfully completed for shipment ID: {}", savedDelivery.getId(), shipmentId);
         return DeliveryResponse.fromEntity(savedDelivery);
     }
@@ -182,7 +220,7 @@ public class DeliveryService {
         if (!shipmentRepository.existsById(shipmentId)) {
             throw new ResourceNotFoundException("Shipment not found with ID: " + shipmentId);
         }
-        Delivery delivery = deliveryRepository.findByShipmentId(shipmentId)
+        Delivery delivery = deliveryRepository.findTopByShipmentIdOrderByCreatedAtDesc(shipmentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Delivery not found for shipment ID: " + shipmentId));
         return DeliveryResponse.fromEntity(delivery);
     }

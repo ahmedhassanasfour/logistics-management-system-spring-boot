@@ -1,4 +1,4 @@
-package com.ahmed.logistics.delivery.pod.security;
+package com.ahmed.logistics.delivery.failure.security;
 
 import com.ahmed.logistics.delivery.entity.Delivery;
 import com.ahmed.logistics.delivery.repository.DeliveryRepository;
@@ -10,9 +10,9 @@ import org.springframework.stereotype.Component;
 
 import java.util.Optional;
 
-@Component("proofOfDeliverySecurity")
+@Component("deliveryFailureSecurity")
 @RequiredArgsConstructor
-public class ProofOfDeliverySecurity {
+public class DeliveryFailureSecurity {
 
     private final DeliveryRepository deliveryRepository;
     private final ShipmentRepository shipmentRepository;

@@ -10,11 +10,8 @@ import java.time.LocalDateTime;
 @Entity
 @Table(
         name = "deliveries",
-        uniqueConstraints = {
-                @UniqueConstraint(name = "uk_deliveries_shipment_id", columnNames = "shipment_id")
-        },
         indexes = {
-                @Index(name = "idx_deliveries_shipment_id", columnList = "shipment_id", unique = true),
+                @Index(name = "idx_deliveries_shipment_id", columnList = "shipment_id"),
                 @Index(name = "idx_deliveries_driver_id", columnList = "driver_id"),
                 @Index(name = "idx_deliveries_status", columnList = "status")
         }
@@ -30,11 +27,10 @@ public class Delivery {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
             name = "shipment_id",
             nullable = false,
-            unique = true,
             foreignKey = @ForeignKey(name = "fk_deliveries_shipment")
     )
     private Shipment shipment;

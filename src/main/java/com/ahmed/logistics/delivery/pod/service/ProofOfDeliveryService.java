@@ -110,10 +110,7 @@ public class ProofOfDeliveryService {
             throw new ResourceNotFoundException("Shipment not found with ID: " + shipmentId);
         }
 
-        Delivery delivery = deliveryRepository.findByShipmentId(shipmentId)
-                .orElseThrow(() -> new ResourceNotFoundException("Delivery not found for shipment ID: " + shipmentId));
-
-        ProofOfDelivery pod = proofOfDeliveryRepository.findByDeliveryId(delivery.getId())
+        ProofOfDelivery pod = proofOfDeliveryRepository.findByShipmentId(shipmentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Proof of delivery not found for shipment ID: " + shipmentId));
 
         return ProofOfDeliveryResponse.fromEntity(pod);
