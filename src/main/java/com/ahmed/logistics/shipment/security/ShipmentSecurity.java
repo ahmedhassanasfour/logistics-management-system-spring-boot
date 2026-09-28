@@ -129,10 +129,17 @@ public class ShipmentSecurity {
         if (isStaff) {
             return true;
         }
+        if (shipmentId == null) {
+            return false;
+        }
 
         return shipmentRepository.findById(shipmentId)
-                .map(shipment ->
-                        shipment.getCustomer().getUser().getEmail().equalsIgnoreCase(authentication.getName()))
+                .map(shipment -> {
+                    if (shipment.getCustomer() == null || shipment.getCustomer().getUser() == null) {
+                        return false;
+                    }
+                    return shipment.getCustomer().getUser().getEmail().equalsIgnoreCase(authentication.getName());
+                })
                 .orElse(false);
     }
 }

@@ -18,20 +18,22 @@ public class DeliveryController {
 
     private final DeliveryService deliveryService;
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'DISPATCHER', 'DRIVER')")
+    @PreAuthorize("@deliverySecurity.canManageShipmentDelivery(#shipmentId, authentication)")
     @PostMapping("/{shipmentId}/start")
     public ResponseEntity<DeliveryResponse> startDelivery(
-            @PathVariable Long shipmentId
+            @PathVariable Long shipmentId,
+            Authentication authentication
     ) {
         DeliveryResponse response = deliveryService.startDelivery(shipmentId);
         return ResponseEntity.ok(response);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'DISPATCHER', 'DRIVER')")
+    @PreAuthorize("@deliverySecurity.canManageShipmentDelivery(#shipmentId, authentication)")
     @PostMapping("/{shipmentId}/complete")
     public ResponseEntity<DeliveryResponse> completeDelivery(
             @PathVariable Long shipmentId,
-            @RequestBody(required = false) CompleteDeliveryRequest request
+            @RequestBody(required = false) CompleteDeliveryRequest request,
+            Authentication authentication
     ) {
         String deliveryNotes = request != null ? request.deliveryNotes() : null;
         DeliveryResponse response = deliveryService.completeDelivery(shipmentId, deliveryNotes);
