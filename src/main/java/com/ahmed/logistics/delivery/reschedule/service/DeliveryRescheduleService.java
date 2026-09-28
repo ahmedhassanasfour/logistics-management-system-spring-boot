@@ -24,8 +24,10 @@ import com.ahmed.logistics.vehicle.repository.VehicleRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import com.ahmed.logistics.config.CacheNames;
+import com.ahmed.logistics.event.DeliveryRescheduledEvent;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Caching;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,6 +46,7 @@ public class DeliveryRescheduleService {
     private final DriverRepository driverRepository;
     private final VehicleRepository vehicleRepository;
     private final ShipmentLifecycleService shipmentLifecycleService;
+    private final ApplicationEventPublisher eventPublisher;
 
     private static final String TRACKING_DELIVERY_RESCHEDULED = "Delivery rescheduled";
     private static final String TRACKING_NEW_ATTEMPT_CREATED = "New delivery attempt created";
@@ -137,6 +140,17 @@ public class DeliveryRescheduleService {
         );
 
         log.info("Delivery ID: {} rescheduled successfully. Reschedule ID: {}", deliveryId, savedReschedule.getId());
+
+        Long customerId = lockedShipment.getCustomer() != null ? lockedShipment.getCustomer().getId() : null;
+        eventPublisher.publishEvent(new DeliveryRescheduledEvent(
+                deliveryId,
+                shipmentId,
+                customerId,
+                savedReschedule.getScheduledAt(),
+                savedReschedule.getReason(),
+                savedReschedule.getStatus()
+        ));
+
         return RescheduleResponse.fromEntity(savedReschedule);
     }
 

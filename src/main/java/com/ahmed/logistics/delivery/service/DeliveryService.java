@@ -20,11 +20,13 @@ import org.springframework.stereotype.Service;
 import com.ahmed.logistics.delivery.pod.repository.ProofOfDeliveryRepository;
 import com.ahmed.logistics.delivery.reschedule.entity.RescheduleStatus;
 import com.ahmed.logistics.delivery.reschedule.repository.DeliveryRescheduleRepository;
+import com.ahmed.logistics.event.ShipmentDeliveredEvent;
 import com.ahmed.logistics.vehicle.entity.VehicleStatus;
 import com.ahmed.logistics.vehicle.repository.VehicleRepository;
 import com.ahmed.logistics.config.CacheNames;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Caching;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -44,6 +46,7 @@ public class DeliveryService {
     private final ShipmentTrackingService shipmentTrackingService;
     private final ProofOfDeliveryRepository proofOfDeliveryRepository;
     private final DeliveryRescheduleRepository deliveryRescheduleRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     private static final String TRACKING_DELIVERY_STARTED = "Delivery started";
     private static final String TRACKING_DELIVERY_COMPLETED = "Delivery completed";
@@ -214,6 +217,10 @@ public class DeliveryService {
                 });
 
         log.info("Delivery ID: {} successfully completed for shipment ID: {}", savedDelivery.getId(), shipmentId);
+
+        Long customerId = shipment.getCustomer() != null ? shipment.getCustomer().getId() : null;
+        eventPublisher.publishEvent(new ShipmentDeliveredEvent(shipment.getId(), shipment.getTrackingNumber(), customerId));
+
         return DeliveryResponse.fromEntity(savedDelivery);
     }
 

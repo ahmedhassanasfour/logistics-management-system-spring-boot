@@ -11,8 +11,10 @@ import com.ahmed.logistics.shipment.entity.Shipment;
 import com.ahmed.logistics.shipment.entity.ShipmentStatus;
 import com.ahmed.logistics.shipment.repository.ShipmentRepository;
 import com.ahmed.logistics.shipment.tracking.service.ShipmentTrackingService;
+import com.ahmed.logistics.event.PaymentPaidEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +33,7 @@ public class PaymentService {
     private final PaymentRepository paymentRepository;
     private final ShipmentRepository shipmentRepository;
     private final ShipmentTrackingService shipmentTrackingService;
+    private final ApplicationEventPublisher eventPublisher;
 
     private static final Map<PaymentStatus, Set<PaymentStatus>> ALLOWED_TRANSITIONS = Map.of(
             PaymentStatus.PENDING, Set.of(PaymentStatus.PAID, PaymentStatus.FAILED, PaymentStatus.CANCELLED),
@@ -140,6 +143,11 @@ public class PaymentService {
         }
 
         log.info("Payment ID: {} marked as PAID successfully", paymentId);
+
+        Long shipmentId = shipment != null ? shipment.getId() : null;
+        Long customerId = (shipment != null && shipment.getCustomer() != null) ? shipment.getCustomer().getId() : null;
+        eventPublisher.publishEvent(new PaymentPaidEvent(savedPayment.getId(), shipmentId, customerId, savedPayment.getAmount()));
+
         return PaymentResponse.fromEntity(savedPayment);
     }
 

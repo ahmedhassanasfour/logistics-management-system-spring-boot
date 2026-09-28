@@ -22,8 +22,10 @@ import com.ahmed.logistics.vehicle.repository.VehicleRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import com.ahmed.logistics.config.CacheNames;
+import com.ahmed.logistics.event.DeliveryFailedEvent;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Caching;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,6 +43,7 @@ public class DeliveryFailureService {
     private final DriverRepository driverRepository;
     private final VehicleRepository vehicleRepository;
     private final ShipmentLifecycleService shipmentLifecycleService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     @Caching(evict = {
@@ -116,6 +119,10 @@ public class DeliveryFailureService {
         }
 
         log.info("Delivery failure recorded successfully with ID: {} for delivery ID: {}", savedFailure.getId(), deliveryId);
+
+        Long driverId = delivery.getDriver() != null ? delivery.getDriver().getId() : null;
+        eventPublisher.publishEvent(new DeliveryFailedEvent(delivery.getId(), lockedShipment.getId(), driverId, request.reason()));
+
         return DeliveryFailureResponse.fromEntity(savedFailure);
     }
 

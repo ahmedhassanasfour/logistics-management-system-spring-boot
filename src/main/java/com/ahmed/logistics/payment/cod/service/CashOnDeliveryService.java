@@ -19,8 +19,10 @@ import com.ahmed.logistics.payment.repository.PaymentRepository;
 import com.ahmed.logistics.shipment.entity.Shipment;
 import com.ahmed.logistics.shipment.repository.ShipmentRepository;
 import com.ahmed.logistics.shipment.tracking.service.ShipmentTrackingService;
+import com.ahmed.logistics.event.CodCollectedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,6 +41,7 @@ public class CashOnDeliveryService {
     private final ShipmentRepository shipmentRepository;
     private final DriverRepository driverRepository;
     private final ShipmentTrackingService shipmentTrackingService;
+    private final ApplicationEventPublisher eventPublisher;
 
     private static final String TRACKING_COD_CREATED = "COD payment created";
     private static final String TRACKING_COD_COLLECTED = "COD payment collected";
@@ -226,6 +229,10 @@ public class CashOnDeliveryService {
         );
 
         log.info("COD ID: {} collected successfully by driver ID: {}", savedCod.getId(), lockedDriver.getId());
+
+        Long customerId = shipment.getCustomer() != null ? shipment.getCustomer().getId() : null;
+        eventPublisher.publishEvent(new CodCollectedEvent(savedCod.getId(), shipment.getId(), customerId, savedCod.getCollectedAmount()));
+
         return CodResponse.fromEntity(savedCod);
     }
 
