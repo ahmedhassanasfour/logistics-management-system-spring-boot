@@ -57,6 +57,44 @@ public class GlobalExceptionHandler {
     }
 
     // =========================
+    // Geocoding & Distance Exceptions
+    // =========================
+
+    @ExceptionHandler(GeocodingException.class)
+    public ResponseEntity<ErrorResponse> handleGeocodingException(
+            GeocodingException ex
+    ) {
+        log.error("Geocoding error: {}", ex.getMessage());
+        ErrorResponse response = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.BAD_REQUEST.value(),
+                "Geocoding Error",
+                ex.getMessage()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(response);
+    }
+
+    @ExceptionHandler(DistanceCalculationException.class)
+    public ResponseEntity<ErrorResponse> handleDistanceCalculationException(
+            DistanceCalculationException ex
+    ) {
+        log.error("Distance calculation error: {}", ex.getMessage());
+        ErrorResponse response = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.BAD_REQUEST.value(),
+                "Distance Calculation Error",
+                ex.getMessage()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(response);
+    }
+
+    // =========================
     // Conflict (409)
     // =========================
 

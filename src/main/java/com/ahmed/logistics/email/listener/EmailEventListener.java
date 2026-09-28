@@ -5,8 +5,10 @@ import com.ahmed.logistics.email.service.EmailService;
 import com.ahmed.logistics.event.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.util.Optional;
 
@@ -18,9 +20,10 @@ public class EmailEventListener {
     private final EmailService emailService;
     private final EmailRecipientResolver recipientResolver;
 
-    @EventListener
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleShipmentDelivered(ShipmentDeliveredEvent event) {
-        log.info("Processing email notification for ShipmentDeliveredEvent (shipment ID: {})", event.shipmentId());
+        log.info("Processing email notification asynchronously for ShipmentDeliveredEvent (shipment ID: {})", event.shipmentId());
 
         try {
             Optional<String> recipientOpt = recipientResolver.resolveCustomerEmail(event.customerId());
@@ -57,9 +60,10 @@ public class EmailEventListener {
         }
     }
 
-    @EventListener
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handlePaymentPaid(PaymentPaidEvent event) {
-        log.info("Processing email notification for PaymentPaidEvent (payment ID: {})", event.paymentId());
+        log.info("Processing email notification asynchronously for PaymentPaidEvent (payment ID: {})", event.paymentId());
 
         try {
             Optional<String> recipientOpt = recipientResolver.resolveCustomerEmail(event.customerId());
@@ -100,9 +104,10 @@ public class EmailEventListener {
         }
     }
 
-    @EventListener
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleCodCollected(CodCollectedEvent event) {
-        log.info("Processing email notification for CodCollectedEvent (COD ID: {})", event.codId());
+        log.info("Processing email notification asynchronously for CodCollectedEvent (COD ID: {})", event.codId());
 
         try {
             Optional<String> recipientOpt = recipientResolver.resolveCustomerEmail(event.customerId());
@@ -143,9 +148,10 @@ public class EmailEventListener {
         }
     }
 
-    @EventListener
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleDeliveryFailed(DeliveryFailedEvent event) {
-        log.info("Processing email notification for DeliveryFailedEvent (delivery ID: {})", event.deliveryId());
+        log.info("Processing email notification asynchronously for DeliveryFailedEvent (delivery ID: {})", event.deliveryId());
 
         try {
             Optional<String> recipientOpt = recipientResolver.resolveCustomerEmail(event.customerId());
@@ -185,9 +191,10 @@ public class EmailEventListener {
         }
     }
 
-    @EventListener
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleDeliveryRescheduled(DeliveryRescheduledEvent event) {
-        log.info("Processing email notification for DeliveryRescheduledEvent (delivery ID: {})", event.deliveryId());
+        log.info("Processing email notification asynchronously for DeliveryRescheduledEvent (delivery ID: {})", event.deliveryId());
 
         try {
             Optional<String> recipientOpt = recipientResolver.resolveCustomerEmail(event.customerId());
