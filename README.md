@@ -1,4 +1,6 @@
-# Logistics Management System
+# 🚚 Enterprise Logistics Management System
+
+`Java 21` `Spring Boot 4.1.1` `PostgreSQL 17` `Redis 7` `Docker` `Spring Security` `JWT` `OpenAPI` `Actuator`
 
 Production-grade Spring Boot 4.1.1 Logistics and Supply Chain Management platform built with Java 21, PostgreSQL 17, Redis 7, Spring Security with JWT, SpringDoc OpenAPI, and Spring Boot Actuator.
 
