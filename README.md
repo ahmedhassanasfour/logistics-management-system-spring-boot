@@ -1,6 +1,13 @@
 # 🚚 Enterprise Logistics Management System
 
-`Java 21` `Spring Boot 4.1.1` `PostgreSQL 17` `Redis 7` `Docker` `Spring Security` `JWT` `OpenAPI` `Actuator`
+[![Java](https://img.shields.io/badge/Java-21-orange.svg?style=flat&logo=openjdk)](https://openjdk.org/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.1.1-brightgreen.svg?style=flat&logo=springboot)](https://spring.io/projects/spring-boot)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-blue.svg?style=flat&logo=postgresql)](https://www.postgresql.org/)
+[![Redis](https://img.shields.io/badge/Redis-7-red.svg?style=flat&logo=redis)](https://redis.io/)
+[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED.svg?style=flat&logo=docker)](https://www.docker.com/)
+[![Security](https://img.shields.io/badge/Security-Spring%20Security%20%2B%20JWT-purple.svg?style=flat&logo=springsecurity)](https://spring.io/projects/spring-security)
+[![OpenAPI](https://img.shields.io/badge/OpenAPI-3.0%20%2F%20Swagger-green.svg?style=flat&logo=swagger)](https://swagger.io/)
+[![Actuator](https://img.shields.io/badge/Actuator-Metrics%20%26%20Health-orange.svg?style=flat&logo=spring)](https://docs.spring.io/spring-boot/docs/current/reference/html/actuator.html)
 
 Production-grade Spring Boot 4.1.1 Logistics and Supply Chain Management platform built with Java 21, PostgreSQL 17, Redis 7, Spring Security with JWT, SpringDoc OpenAPI, and Spring Boot Actuator.
 
