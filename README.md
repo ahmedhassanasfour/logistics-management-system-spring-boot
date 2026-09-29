@@ -39,54 +39,64 @@ The application adopts a domain-driven, layered architecture where business logi
 
 ```mermaid
 flowchart TD
-    Client(["HTTP / Mobile / SPA Clients"]) -->|REST API + JWT Bearer| SecurityFilter["Spring Security & JWT Filter Chain"]
-    SecurityFilter --> CorsCheck["CORS & Idempotency Header Validation"]
+    Client(["HTTP or Mobile Clients"]) -->|REST API and JWT Bearer| SecurityFilter["Spring Security and JWT Filter Chain"]
+    SecurityFilter --> CorsCheck["CORS and Idempotency Header Validation"]
     CorsCheck --> Controllers["Spring MVC REST Controllers"]
 
-    subgraph Presentation ["Controller Layer (Thin)"]
-        Controllers
-    end
-
-    subgraph ServiceLayer ["Domain Services (Transactional Core)"]
-        ShipmentSvc["Shipment & Pricing Service"]
-        DeliverySvc["Delivery & POD Service"]
-        PaymentSvc["Payment & COD Service"]
+    subgraph ServiceLayer ["Domain Services"]
+        ShipmentSvc["Shipment and Pricing Service"]
+        DeliverySvc["Delivery and POD Service"]
+        PaymentSvc["Payment and COD Service"]
         WarehouseSvc["Warehouse Movement Service"]
-        FleetSvc["Driver & Fleet Service"]
+        FleetSvc["Driver and Fleet Service"]
         IdempotencySvc["Idempotency Service"]
     end
 
     subgraph Integrations ["External Engines"]
-        GeoEngine["Nominatim Geocoding / Haversine Engine"]
-        MailGateway["JavaMailSender / SMTP Gateway"]
+        GeoEngine["Nominatim Geocoding and Haversine Engine"]
+        MailGateway["JavaMailSender and SMTP Gateway"]
     end
 
-    subgraph Persistence ["Data & Cache Storage"]
-        Postgres[(PostgreSQL 17 Database)]
-        RedisCache[(Redis 7 Cache & Idempotency Store)]
+    subgraph Persistence ["Data and Cache Storage"]
+        Postgres[("PostgreSQL 17 Database")]
+        RedisCache[("Redis 7 Cache and Idempotency Store")]
     end
 
     subgraph EventSubsystem ["Event-Driven Async Layer"]
         EventPub["Spring ApplicationEventPublisher"]
-        NotifListener["Notification Event Listener (Async)"]
-        EmailListener["Email Event Listener (Async)"]
+        NotifListener["Notification Event Listener"]
+        EmailListener["Email Event Listener"]
         NotifSvc["Persistent Notification Service"]
 
-        EventPub -->|AFTER_COMMIT / Async| NotifListener
-        EventPub -->|AFTER_COMMIT / Async| EmailListener
+        EventPub -->|AFTER_COMMIT Async| NotifListener
+        EventPub -->|AFTER_COMMIT Async| EmailListener
         NotifListener --> NotifSvc
         EmailListener --> MailGateway
     end
 
-    Controllers --> ServiceLayer
+    Controllers --> ShipmentSvc
+    Controllers --> DeliverySvc
+    Controllers --> PaymentSvc
+    Controllers --> WarehouseSvc
+    Controllers --> FleetSvc
+
     ShipmentSvc --> GeoEngine
     PaymentSvc --> IdempotencySvc
-    ServiceLayer -.->|Publish Event| EventPub
 
-    ServiceLayer --> Postgres
-    NotifSvc --> Postgres
-    ServiceLayer --> RedisCache
+    ShipmentSvc -.->|Publish Event| EventPub
+    DeliverySvc -.->|Publish Event| EventPub
+    PaymentSvc -.->|Publish Event| EventPub
+
+    ShipmentSvc --> Postgres
+    DeliverySvc --> Postgres
+    PaymentSvc --> Postgres
+    WarehouseSvc --> Postgres
+    FleetSvc --> Postgres
     IdempotencySvc --> Postgres
+    NotifSvc --> Postgres
+
+    FleetSvc --> RedisCache
+    WarehouseSvc --> RedisCache
 ```
 
 ### Architectural Flow:
@@ -841,32 +851,32 @@ flowchart TD
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Dispatcher as Dispatcher / Admin
+    actor Dispatcher as Dispatcher or Admin
     actor Driver as Driver
     actor Customer as Customer
     participant API as Delivery Controller
     participant DB as PostgreSQL
     participant Events as Event Publisher
 
-    Dispatcher->>API: Assign Driver & Vehicle (Shipment -> ASSIGNED)
+    Dispatcher->>API: Assign Driver and Vehicle
     Driver->>API: POST /api/deliveries/{shipmentId}/start
-    API->>DB: Lock Shipment & Set Delivery -> IN_PROGRESS
+    API->>DB: Lock Shipment and Set Delivery IN_PROGRESS
     
     alt Delivery Succeeded
         Driver->>API: POST /api/deliveries/{deliveryId}/pod
         API->>DB: Persist ProofOfDelivery
         Driver->>API: POST /api/deliveries/{shipmentId}/complete
-        API->>DB: Set Delivery & Shipment -> DELIVERED (Driver -> AVAILABLE)
+        API->>DB: Set Delivery and Shipment to DELIVERED
         API->>Events: Publish ShipmentDeliveredEvent
     else Delivery Failed
         Driver->>API: POST /api/deliveries/{deliveryId}/failure
-        API->>DB: Set Delivery -> FAILED, Shipment -> DELIVERY_FAILED
+        API->>DB: Set Delivery FAILED and Shipment DELIVERY_FAILED
         API->>Events: Publish DeliveryFailedEvent
         Driver->>API: POST /api/deliveries/{deliveryId}/reschedule
-        API->>DB: Persist DeliveryReschedule, Shipment -> RESCHEDULED
+        API->>DB: Persist DeliveryReschedule and Shipment RESCHEDULED
         API->>Events: Publish DeliveryRescheduledEvent
         Dispatcher->>API: POST /api/deliveries/shipment/{shipmentId}/new-attempt
-        API->>DB: Create New Delivery (IN_PROGRESS), Shipment -> OUT_FOR_DELIVERY
+        API->>DB: Create New Delivery IN_PROGRESS and Shipment OUT_FOR_DELIVERY
     end
 ```
 
@@ -932,7 +942,7 @@ Domain transitions emit application events that are processed asynchronously aft
 flowchart LR
     BusinessOp["Business Operation"] -->|1. Commit Transaction| DBCommit[("Database Commit")]
     DBCommit -->|2. TransactionPhase.AFTER_COMMIT| EventBridge["Spring Event Bridge"]
-    EventBridge -->|3. @Async (ThreadPoolTaskExecutor)| AsyncPool["Async Thread Pool"]
+    EventBridge -->|3. AFTER_COMMIT Async Dispatch| AsyncPool["Async Thread Pool"]
 
     AsyncPool --> NotifTask["NotificationEventListener"]
     AsyncPool --> EmailTask["EmailEventListener"]
