@@ -13,6 +13,47 @@ Production-grade Spring Boot 4.1.1 Logistics and Supply Chain Management platfor
 
 ---
 
+## 📌 Table of Contents
+
+1. [Project Overview](#1-overview)
+2. [Key Features](#2-key-features)
+3. [Architecture & Design Patterns](#3-architecture)
+4. [Tech Stack](#4-tech-stack)
+5. [Roles, Permissions & Security](#5-roles--permissions)
+6. [Authentication & JWT](#6-authentication)
+7. [Core Business Modules & REST API Reference](#7-api-documentation)
+   - [7.1 Customer Management](#71-customer-management)
+   - [7.2 Driver Management](#72-driver-management)
+   - [7.3 Fleet & Vehicle Management](#73-fleet--vehicle-management)
+   - [7.4 Branch & Hub Management](#74-branch--hub-management)
+   - [7.5 Warehouse & Facility Management](#75-warehouse--facility-management)
+   - [7.6 Shipment Lifecycle & Pricing Engine](#76-shipment-lifecycle--pricing-engine)
+   - [7.7 Shipment Tracking & Audit Timeline](#77-shipment-tracking--audit-timeline)
+   - [7.8 Warehouse Movements](#78-warehouse-movements)
+   - [7.9 Last-Mile Delivery Execution](#79-last-mile-delivery-execution)
+   - [7.10 Proof of Delivery (POD)](#710-proof-of-delivery-pod)
+   - [7.11 Delivery Failures & Incident Tracking](#711-delivery-failures--incident-tracking)
+   - [7.12 Delivery Rescheduling & Re-attempts](#712-delivery-rescheduling--re-attempts)
+   - [7.13 Electronic Payments & Idempotency](#713-electronic-payments--idempotency)
+   - [7.14 Cash on Delivery (COD) Management](#714-cash-on-delivery-cod-management)
+   - [7.15 In-App Notifications & Alerts](#715-in-app-notifications--alerts)
+8. [Business Flows & State Machines](#8-business-flows)
+   - [8.1 Shipment Lifecycle State Machine](#81-shipment-lifecycle-state-machine)
+   - [8.2 Delivery Execution & Failure Recovery Flow](#82-delivery-execution--failure-recovery-flow)
+9. [Distributed Idempotency Pattern](#9-idempotency-documentation)
+10. [Distance Calculation & Dynamic Pricing](#10-distance--pricing)
+11. [Event-Driven Architecture & Async Processing](#11-events--async-processing)
+12. [Redis Caching Strategy](#12-redis-caching)
+13. [Global Error Handling](#13-error-responses)
+14. [Directory & Package Structure](#14-project-structure)
+15. [Running with Docker & Docker Compose](#15-docker--container-deployment)
+16. [Environment Configuration & Variables](#16-environment-variables)
+17. [Running Locally](#17-running-locally)
+18. [Production Hardening Notes](#18-production-hardening-notes)
+19. [Project Status](#19-project-status)
+
+---
+
 ## 1. Overview
 
 The **Logistics Management System** is a modular enterprise backend engineered to automate the end-to-end lifecycle of parcel delivery and freight transportation. It provides centralized control over:
